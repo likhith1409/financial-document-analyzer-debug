@@ -1,38 +1,103 @@
-# Financial Document Analyzer - Debug Assignment
+# Financial Document Analyzer
 
-## Project Overview
-A comprehensive financial document analysis system that processes corporate reports, financial statements, and investment documents using AI-powered analysis agents.
+This project is a FastAPI application that uses a team of AI agents to analyze financial documents. You can upload a PDF of a financial report, and the AI agents will provide a detailed analysis, investment advice, and a risk assessment.
 
-## Getting Started
+## Bugs Found and Fixes
 
-### Install Required Libraries
-```sh
-pip install -r requirement.txt
+During the development of this project, several bugs were encountered and fixed. Here is a summary of the issues and their resolutions:
+
+### 1. `NameError: name 'tool' is not defined`
+
+*   **Bug:** The `@tool` decorator was used in `tools.py` without being imported.
+*   **Fix:** The `tool` decorator was imported from `crewai.tools` by changing the import statement from `from crewai.tools import BaseTool` to `from crewai.tools import BaseTool, tool`.
+
+### 2. `'function' object has no attribute 'get'`
+
+*   **Bug:** This error was caused by a misconfiguration in how the `crewai` agents were being used. The `kickoff` method of the `Crew` class was not receiving the `file_path` of the document to be analyzed.
+*   **Fix:** The `main.py` file was updated to pass the `file_path` to the `kickoff` method. The agent goals and task descriptions in `agents.py` and `task.py` were also updated to include the `{file_path}` placeholder, ensuring the agents were aware of the file they needed to process.
+
+### 3. `'function' object has no attribute 'agent'`
+
+*   **Bug:** After refactoring the project to use a custom `Crew` class, this error occurred because the `CustomCrew` was receiving a function instead of a `CustomTask` object.
+*   **Fix:** This was a complex issue that required a major refactoring of the project. The `crewai.Crew` and `crewai.Task` classes were replaced with custom `CustomCrew` and `CustomTask` classes to provide more control over the agent and task execution flow.
+
+### 4. `'Tool' object is not callable`
+
+*   **Bug:** This error occurred because the code was attempting to call a `crewai` `Tool` object as a function.
+*   **Fix:** The `agents.py` file was modified to call the `run` method of the tool object (e.g., `analyze_investment.run(document_text)`) instead of calling the object directly.
+
+### 5. Inefficient Prompts
+
+*   **Bug:** The prompts used to generate the financial analysis and risk assessment were too generic, leading to suboptimal results.
+*   **Fix:** The prompts in `tools.py` were significantly improved to be more specific and structured. They now request specific metrics, a structured output format, and provide more context to the LLM, resulting in higher quality analysis.
+
+## Setup and Usage
+
+### Prerequisites
+
+*   Python 3.8+
+*   An NVIDIA API key
+
+### Installation
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/likhith1409/financial-document-analyzer-debug.git
+    cd financial-document-analyzer-debug
+    ```
+
+2.  **Install the dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+3.  **Set up the environment variables:**
+    *   Create a `.env` file in the root of the project.
+    *   Add your NVIDIA API key to the `.env` file:
+        ```
+        NVIDIA_API_KEY="your_api_key_here"
+        ```
+
+### Running the Application
+
+To run the application, you only need to start the FastAPI server, which now includes the Gradio UI.
+
+```bash
+python -m uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-### Sample Document
-The system analyzes financial documents like Tesla's Q2 2025 financial update.
+The Gradio web interface will be available at `http://localhost:8000/gradio`.
 
-**To add Tesla's financial document:**
-1. Download the Tesla Q2 2025 update from: https://www.tesla.com/sites/default/files/downloads/TSLA-Q2-2025-Update.pdf
-2. Save it as `data/sample.pdf` in the project directory
-3. Or upload any financial PDF through the API endpoint
+## API Documentation
 
-**Note:** Current `data/sample.pdf` is a placeholder - replace with actual Tesla financial document for proper testing.
+### `/analyze`
 
-# You're All Not Set!
-🐛 **Debug Mode Activated!** The project has bugs waiting to be squashed - your mission is to fix them and bring it to life.
+This endpoint analyzes a financial document and provides a comprehensive report.
 
-## Debugging Instructions
+*   **Method:** `POST`
+*   **Content-Type:** `multipart/form-data`
 
-1. **Identify the Bug**: Carefully read the code in each file and understand the expected behavior. There is a bug in each line of code. So be careful.
-2. **Fix the Bug**: Implement the necessary changes to fix the bug.
-3. **Test the Fix**: Run the project and verify that the bug is resolved.
-4. **Repeat**: Continue this process until all bugs are fixed.
+#### Request
 
-## Expected Features
-- Upload financial documents (PDF format)
-- AI-powered financial analysis
-- Investment recommendations
-- Risk assessment
-- Market insights
+| Parameter | Type   | Description                                         |
+| :-------- | :----- | :-------------------------------------------------- |
+| `file`    | `file` | The financial document to be analyzed (PDF format). |
+| `query`   | `str`  | (Optional) A specific query for the analysis.       |
+
+#### Response
+
+A successful response will return a JSON object with the following structure:
+
+```json
+{
+  "status": "success",
+  "query": "Analyze this financial document for investment insights",
+  "analysis": "[...]",
+  "file_processed": "your_document.pdf"
+}
+```
+
+*   `status`: The status of the request.
+*   `query`: The query used for the analysis.
+*   `analysis`: A string containing the detailed analysis from the AI agents.
+*   `file_processed`: The name of the file that was processed.

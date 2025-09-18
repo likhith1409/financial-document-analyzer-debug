@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Document Analyzer</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; background-color: #f8f9fa; color: #212529; }
+        .header { background-color: #007bff; color: white; padding: 20px; text-align: center; }
+        .header h1 { color: white; }
+        .container { max-width: 900px; margin: 20px auto; background: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+        h2 { color: #007bff; font-weight: 500; }
+        p { line-height: 1.7; font-size: 1.1rem; }
+        .api-links { margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; text-align: center; }
+        .api-links a { display: inline-block; background-color: #007bff; color: white; padding: 12px 25px; margin: 10px; border-radius: 5px; text-decoration: none; font-weight: 500; transition: background-color 0.3s ease; }
+        .api-links a:hover { background-color: #0056b3; }
+        form { display: flex; flex-direction: column; gap: 15px; margin-bottom: 30px; }
+        input, button { padding: 12px; border-radius: 5px; border: 1px solid #ced4da; font-size: 1rem; }
+        button { background-color: #007bff; color: white; border: none; cursor: pointer; font-weight: 500; transition: background-color 0.3s ease; }
+        button:hover { background-color: #0056b3; }
+        button.analyze-btn { background-color: #28a745; }
+        button.analyze-btn:hover { background-color: #218838; }
+        #result, #auth-result, #history-container { margin-top: 20px; padding-top: 20px; border-top: 1px solid #dee2e6; }
+        .analysis-section { margin-bottom: 20px; padding: 20px; border-radius: 8px; background-color: #f8f9fa; }
+        .analysis-section h3 { margin-top: 0; color: #0056b3; }
+        .loader { display: none; margin: 20px auto; border: 8px solid #f3f3f3; border-radius: 50%; border-top: 8px solid #3498db; width: 50px; height: 50px; animation: spin 1s linear infinite; }
+        .token-display { word-wrap: break-word; background: #e9ecef; padding: 10px; border-radius: 5px; margin-top: 10px; }
+        #history-container { display: none; }
+        .history-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .history-card { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; cursor: pointer; transition: box-shadow 0.3s ease; }
+        .history-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .history-card h3 { margin-top: 0; font-size: 1.1rem; color: #0056b3; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: #fefefe; margin: 10% auto; padding: 30px; border: 1px solid #888; width: 80%; max-width: 700px; border-radius: 10px; position: relative; }
+        .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close-btn:hover, .close-btn:focus { color: black; text-decoration: none; }
+        .download-btn { background-color: #17a2b8; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: 500; transition: background-color 0.3s ease; float: right; margin-top: 20px; }
+        .download-btn:hover { background-color: #138496; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Financial Document Analyzer</h1>
+        <p style="color: #d1e7ff; font-size: 0.9rem;">Powered by Gemini 2.5 Flash</p>
+    </div>
+    <div class="container">
+        <h2>1. Register User</h2>
+        <p>First-time user? Register here.</p>
+        <form id="register-form">
+            <input type="text" id="reg-username" name="username" placeholder="Username" required>
+            <input type="password" id="reg-password" name="password" placeholder="Password" required>
+            <input type="email" id="reg-email" name="email" placeholder="Email (optional)">
+            <input type="text" id="reg-fullname" name="fullname" placeholder="Full Name (optional)">
+            <button type="submit">Register</button>
+        </form>
+        <div id="register-result"></div>
+
+        <h2>2. Authenticate</h2>
+        <p>Use your credentials to get an access token.</p>
+        <form id="auth-form">
+            <input type="text" id="username" name="username" value="testuser" required>
+            <input type="password" id="password" name="password" value="testpassword" required>
+            <button type="submit">Get Token</button>
+        </form>
+        <div id="auth-result"></div>
+
+        <h2>3. Test the API</h2>
+        <p>Upload a financial document (PDF) and provide a query to get a detailed analysis.</p>
+        <form id="analysis-form">
+            <input type="text" id="token" name="token" placeholder="Bearer Token will appear here" readonly>
+            <input type="file" id="file" name="file" accept=".pdf" required>
+            <input type="text" id="query" name="query" placeholder="e.g., Analyze this document for investment insights">
+            <button type="submit" class="analyze-btn">Analyze Document</button>
+        </form>
+        <div class="loader" id="loader"></div>
+        <div id="result"></div>
+        
+        <div class="api-links">
+            <a href="/docs" target="_blank">API Documentation</a>
+        </div>
+
+        <div id="history-container">
+            <h2>Your Analysis History</h2>
+            <div id="history-result" class="history-grid"></div>
+        </div>
+    </div>
+
+    <div id="analysis-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <div id="modal-body"></div>
+            <button id="download-report" class="download-btn">Download Report</button>
+        </div>
+    </div>
+
+    <script>
+        let accessToken = '';
+        let currentAnalysis = null;
+
+        function openModal(analysis) {
+            currentAnalysis = analysis;
+            const modal = document.getElementById('analysis-modal');
+            const modalBody = document.getElementById('modal-body');
+            
+            const createdAt = analysis.created_at ? new Date(analysis.created_at).toLocaleString() : 'Date not available';
+            modalBody.innerHTML = `
+                <h3>Query: ${analysis.query}</h3>
+                <p><strong>File:</strong> ${analysis.file_path.split('/').pop()}</p>
+                <p><small>Analyzed on: ${createdAt}</small></p>
+                <div class="analysis-section">
+                    <h4>Financial Analysis</h4>
+                    ${marked.parse(analysis.analysis.financial_analysis || '')}
+                </div>
+                <div class="analysis-section">
+                    <h4>Investment Advising</h4>
+                    ${marked.parse(analysis.analysis.investment_advising || '')}
+                </div>
+                <div class="analysis-section">
+                    <h4>Risk Assessment</h4>
+                    ${marked.parse(analysis.analysis.risk_assessment || '')}
+                </div>
+            `;
+            modal.style.display = 'block';
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('analysis-modal');
+            modal.style.display = 'none';
+            currentAnalysis = null;
+        }
+
+        document.querySelector('.close-btn').addEventListener('click', closeModal);
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('analysis-modal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        });
+
+        document.getElementById('download-report').addEventListener('click', function() {
+            if (!currentAnalysis) return;
+
+            const reportContent = `
+# Financial Analysis Report
+
+## Query
+${currentAnalysis.query}
+
+## File
+${currentAnalysis.file_path.split('/').pop()}
+
+---
+
+### Financial Analysis
+${currentAnalysis.analysis.financial_analysis}
+
+---
+
+### Investment Advising
+${currentAnalysis.analysis.investment_advising}
+
+---
+
+### Risk Assessment
+${currentAnalysis.analysis.risk_assessment}
+            `;
+
+            const blob = new Blob([reportContent], { type: 'text/markdown;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `analysis-report-${currentAnalysis._id}.md`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        async function fetchHistory() {
+            if (!accessToken) return;
+            
+            const historyContainer = document.getElementById('history-container');
+            const historyResultDiv = document.getElementById('history-result');
+            
+            try {
+                const response = await fetch('/history', {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+
+                if (!response.ok) throw new Error('Failed to fetch history.');
+
+                const history = await response.json();
+                historyResultDiv.innerHTML = '';
+
+                if (history.length > 0) {
+                    history.forEach(item => {
+                        const historyCard = document.createElement('div');
+                        historyCard.className = 'history-card';
+                        const createdAt = item.created_at ? new Date(item.created_at).toLocaleString() : 'Date not available';
+                        historyCard.innerHTML = `
+                            <h3>Query: ${item.query}</h3>
+                            <p><strong>File:</strong> ${item.file_path.split('/').pop()}</p>
+                            <p><small>Analyzed on: ${createdAt}</small></p>
+                        `;
+                        historyCard.addEventListener('click', () => openModal(item));
+                        historyResultDiv.appendChild(historyCard);
+                    });
+                } else {
+                    historyResultDiv.innerHTML = '<p>No analysis history found.</p>';
+                }
+                historyContainer.style.display = 'block';
+            } catch (error) {
+                historyResultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+
+        document.getElementById('register-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = {
+                username: form['reg-username'].value,
+                hashed_password: form['reg-password'].value,
+                email: form['reg-email'].value,
+                full_name: form['reg-fullname'].value,
+                disabled: false
+            };
+
+            const registerResultDiv = document.getElementById('register-result');
+            registerResultDiv.innerHTML = '';
+
+            try {
+                const response = await fetch('/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Registration failed');
+                }
+
+                registerResultDiv.innerHTML = `<p style="color: green;">User registered successfully!</p>`;
+                form.reset();
+
+            } catch (error) {
+                registerResultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        });
+
+        document.getElementById('auth-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = new URLSearchParams();
+            formData.append('username', form.username.value);
+            formData.append('password', form.password.value);
+
+            const authResultDiv = document.getElementById('auth-result');
+            authResultDiv.innerHTML = '';
+
+            try {
+                const response = await fetch('/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Authentication failed');
+                }
+
+                const data = await response.json();
+                accessToken = data.access_token;
+                document.getElementById('token').value = `Bearer ${accessToken}`;
+                authResultDiv.innerHTML = `<p style="color: green;">Successfully authenticated!</p>`;
+                
+                await fetchHistory();
+
+            } catch (error) {
+                authResultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        });
+
+        document.getElementById('analysis-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            if (!accessToken) {
+                document.getElementById('result').innerHTML = '<p style="color: red;">Error: You must authenticate first.</p>';
+                return;
+            }
+
+            const form = event.target;
+            const formData = new FormData();
+            formData.append('file', form.file.files[0]);
+            formData.append('query', form.query.value);
+
+            const resultDiv = document.getElementById('result');
+            const loader = document.getElementById('loader');
+
+            resultDiv.innerHTML = '';
+            loader.style.display = 'block';
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${accessToken}` },
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'An error occurred');
+                }
+
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="analysis-section">
+                        <h3>Financial Analysis</h3>
+                        ${marked.parse(data.analysis.financial_analysis)}
+                    </div>
+                    <div class="analysis-section">
+                        <h3>Investment Advising</h3>
+                        ${marked.parse(data.analysis.investment_advising)}
+                    </div>
+                    <div class="analysis-section">
+                        <h3>Risk Assessment</h3>
+                        ${marked.parse(data.analysis.risk_assessment)}
+                    </div>
+                `;
+                
+                await fetchHistory();
+
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            } finally {
+                loader.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
