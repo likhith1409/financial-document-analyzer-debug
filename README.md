@@ -1,103 +1,120 @@
 # Financial Document Analyzer
 
-This project is a FastAPI application that uses a team of AI agents to analyze financial documents. You can upload a PDF of a financial report, and the AI agents will provide a detailed analysis, investment advice, and a risk assessment.
+A full-stack AI application that analyzes financial documents using a team of specialized agents. Users can register, upload a PDF report, and receive a comprehensive analysis covering financial health, investment advice, and risk assessment. All analyses are saved to a user-specific history.
 
-## Bugs Found and Fixes
+**Live Demo**: `[Link to be added]`
 
-During the development of this project, several bugs were encountered and fixed. Here is a summary of the issues and their resolutions:
+## Technology Stack
 
-### 1. `NameError: name 'tool' is not defined`
+- **Backend**: FastAPI
+- **Database**: MongoDB
+- **AI Agents**:
+  - **Primary LLM**: Google's `Gemini 1.5 Flash`
+  - **Fallback LLM**: DeepSeek's `deepseek-ai/deepseek-r1` (via NVIDIA API)
+- **Core Libraries**: `asyncio`, `pydantic`, `python-jose`
+- **Python Version**: `3.12.8`
 
-*   **Bug:** The `@tool` decorator was used in `tools.py` without being imported.
-*   **Fix:** The `tool` decorator was imported from `crewai.tools` by changing the import statement from `from crewai.tools import BaseTool` to `from crewai.tools import BaseTool, tool`.
+## Key Improvements: From Prototype to Product
 
-### 2. `'function' object has no attribute 'get'`
+This project was completely rebuilt from a non-functional prototype. The following key issues were addressed:
 
-*   **Bug:** This error was caused by a misconfiguration in how the `crewai` agents were being used. The `kickoff` method of the `Crew` class was not receiving the `file_path` of the document to be analyzed.
-*   **Fix:** The `main.py` file was updated to pass the `file_path` to the `kickoff` method. The agent goals and task descriptions in `agents.py` and `task.py` were also updated to include the `{file_path}` placeholder, ensuring the agents were aware of the file they needed to process.
+1.  **Broken AI Integration (File Path Bug)**:
+    - **Bug**: The original code saved the uploaded document but failed to pass the file path to the AI crew. The agents were analyzing a hardcoded sample file, ignoring the user's upload.
+    - **Fix**: The application logic was corrected to ensure the `file_path` of the user's document is dynamically passed into the `kickoff` payload, allowing the agents to analyze the correct file.
 
-### 3. `'function' object has no attribute 'agent'`
+2.  **Unreliable Agents & Tasks**:
+    - **Bug**: The original agents were satirical placeholders with no real functionality.
+    - **Fix**: Redesigned agents (`FinancialAnalyst`, `InvestmentAdvisor`, `RiskAssessor`) with professional goals. Implemented a custom asynchronous `CustomCrew` to manage a sequential workflow.
 
-*   **Bug:** After refactoring the project to use a custom `Crew` class, this error occurred because the `CustomCrew` was receiving a function instead of a `CustomTask` object.
-*   **Fix:** This was a complex issue that required a major refactoring of the project. The `crewai.Crew` and `crewai.Task` classes were replaced with custom `CustomCrew` and `CustomTask` classes to provide more control over the agent and task execution flow.
+3.  **Poor Quality Analysis**:
+    - **Bug**: Generic prompts led to vague and unhelpful results.
+    - **Fix**: Engineered highly detailed and structured prompts for the `analyze_investment` and `assess_risk` tools, guiding the LLMs to produce precise, high-quality analysis.
 
-### 4. `'Tool' object is not callable`
-
-*   **Bug:** This error occurred because the code was attempting to call a `crewai` `Tool` object as a function.
-*   **Fix:** The `agents.py` file was modified to call the `run` method of the tool object (e.g., `analyze_investment.run(document_text)`) instead of calling the object directly.
-
-### 5. Inefficient Prompts
-
-*   **Bug:** The prompts used to generate the financial analysis and risk assessment were too generic, leading to suboptimal results.
-*   **Fix:** The prompts in `tools.py` were significantly improved to be more specific and structured. They now request specific metrics, a structured output format, and provide more context to the LLM, resulting in higher quality analysis.
+4.  **Stateless and Insecure**:
+    - **Bug**: The app was a single endpoint with no user management or data persistence.
+    - **Fix**: Introduced a full authentication system (`auth.py`) with JWT tokens and integrated a MongoDB database (`database.py`) to store user data and analysis history.
 
 ## Setup and Usage
 
-### Prerequisites
+### 1. Prerequisites
+- Python 3.12.8
+- MongoDB instance (local or cloud)
 
-*   Python 3.8+
-*   An NVIDIA API key
-
-### Installation
-
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/likhith1409/financial-document-analyzer-debug.git
-    cd financial-document-analyzer-debug
-    ```
-
-2.  **Install the dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-3.  **Set up the environment variables:**
-    *   Create a `.env` file in the root of the project.
-    *   Add your NVIDIA API key to the `.env` file:
-        ```
-        NVIDIA_API_KEY="your_api_key_here"
-        ```
-
-### Running the Application
-
-To run the application, you only need to start the FastAPI server, which now includes the Gradio UI.
-
+### 2. Installation
 ```bash
-python -m uvicorn main:app --host 0.0.0.0 --port 8000
+# Clone the repository
+git clone https://github.com/your-username/financial-document-analyzer-debug.git
+cd financial-document-analyzer-debug
+
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-The Gradio web interface will be available at `http://localhost:8000/gradio`.
+### 3. Environment Configuration
+Create a `.env` file in the root directory and add your credentials:
+```env
+NVIDIA_API_KEY="your_nvidia_api_key"
+GEMINI_API_KEY="your_gemini_api_key"
+MONGO_URI="your_mongodb_connection_string"
+```
+
+### 4. Running the Application
+Start the FastAPI server with the following command:
+```bash
+python main.py
+```
+The application will be running at `http://localhost:8000`. A default user (`testuser` / `testpassword`) is created automatically for easy testing.
 
 ## API Documentation
 
-### `/analyze`
+### `GET /`
+- **Description**: Serves the main `index.html` page.
+- **Response (200)**: An HTML page.
 
-This endpoint analyzes a financial document and provides a comprehensive report.
+---
 
-*   **Method:** `POST`
-*   **Content-Type:** `multipart/form-data`
+### `POST /register`
+- **Description**: Registers a new user in the database.
+- **Request Body**: `application/json`
+  ```json
+  {
+    "username": "string",
+    "hashed_password": "string",
+    "email": "string",
+    "full_name": "string",
+    "disabled": false
+  }
+  ```
+- **Response (200)**: The created user object without the hashed password.
 
-#### Request
+---
 
-| Parameter | Type   | Description                                         |
-| :-------- | :----- | :-------------------------------------------------- |
-| `file`    | `file` | The financial document to be analyzed (PDF format). |
-| `query`   | `str`  | (Optional) A specific query for the analysis.       |
+### `POST /token`
+- **Description**: Authenticates a user and returns an access token.
+- **Request Body**: `application/x-www-form-urlencoded`
+  - `username`: The user's username.
+  - `password`: The user's password.
+- **Response (200)**:
+  ```json
+  {
+    "access_token": "string",
+    "token_type": "bearer"
+  }
+  ```
 
-#### Response
+---
 
-A successful response will return a JSON object with the following structure:
+### `POST /analyze`
+- **Description**: Analyzes a financial document. Requires authentication.
+- **Authentication**: `Bearer <token>` in the request header.
+- **Request Body**: `multipart/form-data`
+  - `file`: The financial document (PDF) to be analyzed. (Required)
+  - `query`: A specific query for the analysis. (Optional)
+- **Response (200)**: A JSON object containing the status, query, analysis results, and the name of the processed file.
 
-```json
-{
-  "status": "success",
-  "query": "Analyze this financial document for investment insights",
-  "analysis": "[...]",
-  "file_processed": "your_document.pdf"
-}
-```
+---
 
-*   `status`: The status of the request.
-*   `query`: The query used for the analysis.
-*   `analysis`: A string containing the detailed analysis from the AI agents.
-*   `file_processed`: The name of the file that was processed.
+### `GET /history`
+- **Description**: Fetches the analysis history for the authenticated user.
+- **Authentication**: `Bearer <token>` in the request header.
+- **Response (200)**: A JSON array where each object represents a past analysis.

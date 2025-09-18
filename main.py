@@ -183,6 +183,6 @@ async def get_user_history(current_user: User = Depends(get_current_active_user)
 if __name__ == "__main__":
     import uvicorn
     print("---")
-    print("FastAPI app running on http://localhost:8000")
+    print("FastAPI app running on http://localhost:9000")
     print("---")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=9000)

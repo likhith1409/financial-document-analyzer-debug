@@ -1,9 +1,38 @@
+click==8.1.8
+# Keep crewai at version 0.130.0
+# Other package versions are flexible and can be changed
+# Only change crewai version if there are critical dependency conflicts that cannot be resolved by other means
+crewai==0.130.0
 fastapi
+Jinja2
+jsonschema
+langchain-core
+langchain-community
+langchain-nvidia-ai-endpoints
+langsmith
+numpy
+oauthlib
+onnxruntime
+openai==1.68.2
+opentelemetry-api
+opentelemetry-exporter-otlp-proto-common
+opentelemetry-exporter-otlp-proto-grpc
+opentelemetry-exporter-otlp-proto-http
+opentelemetry-instrumentation
+opentelemetry-instrumentation-asgi
+opentelemetry-instrumentation-fastapi
+opentelemetry-proto
+opentelemetry-sdk
+opentelemetry-semantic-conventions
+opentelemetry-util-http
+protobuf
 uvicorn
 python-dotenv
-openai
 pymongo
 python-jose[cryptography]
 passlib
 argon2-cffi
 google-generativeai
+pypdf
+python-multipart
+pydantic
