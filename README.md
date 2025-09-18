@@ -3,13 +3,15 @@
 A full-stack AI application that analyzes financial documents using a team of specialized agents. Users can register, upload a PDF report, and receive a comprehensive analysis covering financial health, investment advice, and risk assessment. All analyses are saved to a user-specific history.
 
 **Live Demo**: https://likhithreddy.redirectme.net
+<img width="1910" height="1042" alt="image" src="https://github.com/user-attachments/assets/87a8083d-0648-4265-87f8-5b3ac1c52d34" />
+
 
 ## Technology Stack
 
 - **Backend**: FastAPI
 - **Database**: MongoDB
 - **AI Agents**:
-  - **Primary LLM**: Google's `Gemini 1.5 Flash`
+  - **Primary LLM**: Google's `Gemini 2.5 Flash`
   - **Fallback LLM**: DeepSeek's `deepseek-ai/deepseek-r1` (via NVIDIA API)
 - **Core Libraries**: `asyncio`, `pydantic`, `python-jose`
 - **Python Version**: `3.12.8`
@@ -43,7 +45,7 @@ This project was completely rebuilt from a non-functional prototype. The followi
 ### 2. Installation
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/financial-document-analyzer-debug.git
+git clone https://github.com/likhith1409/financial-document-analyzer-debug.git
 cd financial-document-analyzer-debug
 
 # Install dependencies
